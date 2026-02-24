@@ -1,35 +1,22 @@
-# ETAP 1: Ściągamy bezpieczny, statyczny instalator 'apk'
-FROM alpine:latest AS builder
-RUN apk add --no-cache apk-tools-static
-
-# ETAP 2: Docelowy obraz n8n
 FROM n8nio/n8n:2.8.3
 
 USER root
 
-# Krok 1: Przywracamy system pakietów
-COPY --from=builder /sbin/apk.static /sbin/apk
-RUN /sbin/apk -X http://dl-cdn.alpinelinux.org/alpine/latest-stable/main -U --allow-untrusted --initdb add apk-tools
-
-# Krok 2: Instalujemy Pythona
+# Krok 1: Instalacja Pythona (apk jest dostępne w tym obrazie domyślnie dla roota)
 RUN apk update && apk add --no-cache python3 py3-pip py3-virtualenv
 
-# Krok 3: Tworzymy venv w /opt/venv (stała lokalizacja, poza strukturą n8n)
-RUN python3 -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/venv/bin/pip install --no-cache-dir requests && \
-    chown -R node:node /opt/venv
+# Krok 2: Instalacja venv bezpośrednio wewnątrz struktury n8n
+# Używamy ścieżki, którą n8n 2.8.3 preferuje domyślnie.
+RUN RUNNER_DIR=$(find /usr/local/lib/node_modules -name "task-runner-python" -type d | head -n 1) && \
+    echo "Instalacja w: $RUNNER_DIR" && \
+    python3 -m venv "$RUNNER_DIR/.venv" && \
+    "$RUNNER_DIR/.venv/bin/pip" install --no-cache-dir requests && \
+    # Nadanie uprawnień do całego folderu runnera dla użytkownika node
+    chown -R node:node "$RUNNER_DIR" && \
+    # Kluczowe: nadanie uprawnień do wykonywania plików w venv
+    chmod -R 755 "$RUNNER_DIR/.venv"
 
-# Krok 4: Przygotowanie folderu tymczasowego i roboczego na dysku Render
-# Błąd "insufficient permissions" często dotyczy zapisu wyników w /tmp
-RUN mkdir -p /home/node/.n8n/tmp && \
-    chown -R node:node /home/node/.n8n
-
-# Krok 5: "Oszukujemy" n8n, tworząc symlinki w najbardziej prawdopodobnych miejscach
-# To rozwiązuje błąd "Virtual environment is missing" jeśli zmienna path nie zadziała
-RUN for dir in $(find /usr/local/lib/node_modules -type d -name "task-runner-python"); do \
-      ln -s /opt/venv "$dir/.venv" || true; \
-    done
+# Krok 3: Czyszczenie uprawnień folderu roboczego
+RUN mkdir -p /home/node/.n8n && chown -R node:node /home/node/.n8n
 
 USER node
-WORKDIR /home/node
