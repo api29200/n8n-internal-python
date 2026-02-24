@@ -1,17 +1,15 @@
 # Startujemy z oficjalnego obrazu n8n
 FROM n8nio/n8n:2.9.0
 
-# Przełączamy na root, żeby zainstalować Pythona
+# Przełączamy na root
 USER root
 
-# Instalacja Pythona i pip
-RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-venv python3-distutils && \
-    ln -sf /usr/bin/python3 /usr/bin/python && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# Instalacja Pythona i pip w Alpine
+RUN apk add --no-cache python3 py3-pip py3-virtualenv py3-setuptools \
+    && ln -sf python3 /usr/bin/python
 
 # Powrót do użytkownika node
 USER node
 
-# Potwierdzenie wersji (opcjonalnie)
+# Opcjonalnie: potwierdzenie wersji Pythona
 RUN python --version && pip --version
