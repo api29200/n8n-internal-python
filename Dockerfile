@@ -1,14 +1,15 @@
-# Zmieniamy wersję na 'latest' (stabilną), bo 2.9.0 jest błędna/nieobsługiwana
-FROM n8nio/n8n:latest
+# WAŻNE: Używamy wersji 'latest-debian'. 
+# Zwykłe 'latest' to Alpine, który nie obsługuje apt-get i ma problemy z Pythonem.
+FROM n8nio/n8n:latest-debian
 
 USER root
 
-# Instalacja Pythona 3 i pip
-# Używamy flagi --no-cache aby nie zapychać obrazu śmieciami
-RUN apk add --update --no-cache python3 py3-pip
+# Instalacja Pythona, PIP i Venv (na Debianie używamy apt-get)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
+    rm -rf /var/lib/apt/lists/*
 
-# Opcjonalnie: Instalacja bibliotek (np. requests)
-# W nowych wersjach Pythona na Alpine flaga --break-system-packages jest wymagana
+# Instalacja bibliotek. Flaga --break-system-packages jest konieczna w Debianie 12+
 RUN pip3 install requests --break-system-packages
 
 USER node
