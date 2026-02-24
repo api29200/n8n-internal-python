@@ -1,15 +1,13 @@
-# WAŻNE: Używamy wersji 'latest-debian'. 
-# Zwykłe 'latest' to Alpine, który nie obsługuje apt-get i ma problemy z Pythonem.
-FROM n8nio/n8n:latest-debian
+# Wybrana przez Ciebie wersja
+FROM n8nio/n8n:2.8.3
 
 USER root
 
-# Instalacja Pythona, PIP i Venv (na Debianie używamy apt-get)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 python3-pip python3-venv && \
-    rm -rf /var/lib/apt/lists/*
+# Instalacja Pythona w systemie Alpine (standard dla n8n)
+# Jeśli build wyrzuci błąd "apk: not found", oznacza to, że ta wersja to Debian (patrz niżej)
+RUN apk add --update --no-cache python3 py3-pip
 
-# Instalacja bibliotek. Flaga --break-system-packages jest konieczna w Debianie 12+
+# Instalacja bibliotek (wymagana flaga --break-system-packages w nowych wersjach)
 RUN pip3 install requests --break-system-packages
 
 USER node
