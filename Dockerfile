@@ -1,21 +1,16 @@
-# Startujemy od oficjalnego obrazu n8n
+# Bazujemy na oficjalnym obrazie n8n (Alpine)
 FROM n8nio/n8n:2.9.0
 
-# Przełączamy na root, żeby zainstalować Node.js 22 i Pythona
+# Przełączamy na root, żeby zainstalować Python
 USER root
 
-# Aktualizacja systemu i zależności
-RUN apt-get update && apt-get install -y \
-    curl python3 python3-pip python3-venv python3-distutils gnupg lsb-release \
-    && rm -rf /var/lib/apt/lists/*
+# Instalacja Pythona i pip w Alpine
+RUN apk add --no-cache python3 py3-pip py3-virtualenv py3-setuptools \
+    && ln -sf python3 /usr/bin/python \
+    && python3 -m ensurepip \
+    && pip3 install --upgrade pip
 
-# Instalacja Node.js 22.x ręcznie
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && node -v \
-    && npm -v
-
-# Powrót do użytkownika n8n
+# Wracamy do użytkownika n8n
 USER node
 WORKDIR /home/node
 
