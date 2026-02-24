@@ -7,24 +7,26 @@ FROM n8nio/n8n:2.8.3
 
 USER root
 
-# Krok 1: Przywracamy system pakietów apk (wymagane w obrazie n8n)
+# Krok 1: Przywracamy system pakietów apk
 COPY --from=builder /sbin/apk.static /sbin/apk
 RUN /sbin/apk -X http://dl-cdn.alpinelinux.org/alpine/latest-stable/main -U --allow-untrusted --initdb add apk-tools
 
-# Krok 2: Instalujemy Pythona i venv
+# Krok 2: Instalujemy Pythona
 RUN apk update && apk add --no-cache python3 py3-pip py3-virtualenv
 
-# Krok 3: Instalacja venv bezpośrednio wewnątrz struktury n8n
-# Szukamy folderu runnera (uwzględniając symlinki pnpm) i tworzymy w nim .venv
-RUN RUNNER_DIR=$(find -L /usr/local/lib/node_modules -name "task-runner-python" -type d | head -n 1) && \
-    echo "Instalacja venv w: $RUNNER_DIR" && \
-    python3 -m venv "$RUNNER_DIR/.venv" && \
-    "$RUNNER_DIR/.venv/bin/pip" install --no-cache-dir requests && \
-    # Naprawa uprawnień - kluczowe dla błędu "insufficient permissions"
-    chown -R node:node "$RUNNER_DIR" && \
-    chmod -R 755 "$RUNNER_DIR/.venv"
+# Krok 3: Tworzymy venv w STAŁEJ lokalizacji (nie szukamy folderów n8n!)
+RUN python3 -m venv /usr/local/python_venv && \
+    /usr/local/python_venv/bin/pip install --no-cache-dir requests && \
+    # Nadajemy pełne uprawnienia, aby użytkownik 'node' mógł go uruchamiać
+    chown -R node:node /usr/local/python_venv && \
+    chmod -R 755 /usr/local/python_venv
 
-# Krok 4: Uprawnienia do folderu roboczego na dysku Render
+# Krok 4: Tworzymy symlink tam, gdzie n8n 2.8.3 zazwyczaj zagląda (na wszelki wypadek)
+# Nawet jeśli find nic nie znajdzie, build się nie wywali (dzięki || true)
+RUN RUNNER_DIR=$(find /usr/local/lib/node_modules -name "task-runner-python" -type d | head -n 1) && \
+    if [ ! -z "$RUNNER_DIR" ]; then ln -s /usr/local/python_venv "$RUNNER_DIR/.venv" || true; fi
+
+# Krok 5: Uprawnienia do folderu roboczego
 RUN mkdir -p /home/node/.n8n && chown -R node:node /home/node/.n8n
 
 USER node
