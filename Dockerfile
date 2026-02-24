@@ -11,26 +11,25 @@ USER root
 COPY --from=builder /sbin/apk.static /sbin/apk
 RUN /sbin/apk -X http://dl-cdn.alpinelinux.org/alpine/latest-stable/main -U --allow-untrusted --initdb add apk-tools
 
-# Krok 2: Instalujemy Pythona i venv
+# Krok 2: Instalujemy Pythona
 RUN apk update && apk add --no-cache python3 py3-pip py3-virtualenv
 
-# Krok 3: Tworzymy venv w stałej, bezpiecznej lokalizacji
-RUN python3 -m venv /home/node/python_venv && \
-    /home/node/python_venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /home/node/python_venv/bin/pip install --no-cache-dir requests
+# Krok 3: Tworzymy venv w /opt/venv (stała lokalizacja, poza strukturą n8n)
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir requests && \
+    chown -R node:node /opt/venv
 
-# Krok 4: Metoda Dywanowa - tworzymy symlinki we wszystkich znalezionych folderach runnera
-# Dzięki temu n8n zawsze "zobaczy" folder .venv tam, gdzie go oczekuje,
-# niezależnie od tego, jak pnpm ułożył strukturę katalogów.
-RUN for dir in $(find /usr/local/lib/node_modules -type d -name "task-runner-python"); do \
-      echo "Naprawiam runnera w: $dir"; \
-      ln -s /home/node/python_venv "$dir/.venv"; \
-      chown -h node:node "$dir/.venv"; \
-    done
-
-# Krok 5: Uprawnienia dla użytkownika node
-RUN chown -R node:node /home/node/python_venv && \
-    mkdir -p /home/node/.n8n && \
+# Krok 4: Przygotowanie folderu tymczasowego i roboczego na dysku Render
+# Błąd "insufficient permissions" często dotyczy zapisu wyników w /tmp
+RUN mkdir -p /home/node/.n8n/tmp && \
     chown -R node:node /home/node/.n8n
 
+# Krok 5: "Oszukujemy" n8n, tworząc symlinki w najbardziej prawdopodobnych miejscach
+# To rozwiązuje błąd "Virtual environment is missing" jeśli zmienna path nie zadziała
+RUN for dir in $(find /usr/local/lib/node_modules -type d -name "task-runner-python"); do \
+      ln -s /opt/venv "$dir/.venv" || true; \
+    done
+
 USER node
+WORKDIR /home/node
