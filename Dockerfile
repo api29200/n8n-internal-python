@@ -14,14 +14,20 @@ RUN /sbin/apk -X http://dl-cdn.alpinelinux.org/alpine/latest-stable/main -U --al
 # Krok 2: Instalujemy Pythona i venv
 RUN apk update && apk add --no-cache python3 py3-pip py3-virtualenv
 
-# Krok 3: Tworzymy dedykowane środowisko venv w stałej lokalizacji
-# To eliminuje problem z szukaniem ukrytych folderów pnpm
+# Krok 3: Tworzymy venv w stałej lokalizacji
 RUN python3 -m venv /home/node/python_venv && \
     /home/node/python_venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /home/node/python_venv/bin/pip install --no-cache-dir requests && \
-    chown -R node:node /home/node/python_venv
+    /home/node/python_venv/bin/pip install --no-cache-dir requests
 
-# Krok 4: Uprawnienia do folderu roboczego n8n
+# Krok 4: Dynamicznie znajdujemy folder runnera i tworzymy symlink .venv
+# Używamy Node, aby zapytać system, gdzie dokładnie leży paczka runnera
+RUN RUNNER_DIR=$(node -e "console.log(require('path').dirname(require.resolve('@n8n/task-runner-python/package.json')))") && \
+    echo "Runner znaleziony w: $RUNNER_DIR" && \
+    ln -s /home/node/python_venv "$RUNNER_DIR/.venv" && \
+    chown -R node:node /home/node/python_venv && \
+    chown -h node:node "$RUNNER_DIR/.venv"
+
+# Krok 5: Uprawnienia do folderu roboczego
 RUN mkdir -p /home/node/.n8n && chown -R node:node /home/node/.n8n
 
 USER node
