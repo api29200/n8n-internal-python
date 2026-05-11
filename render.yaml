@@ -1,38 +1,79 @@
 services:
   - type: web
-    name: n8n-v2-8-3-python
-    env: docker
+    name: patsticker-n8n
+    runtime: image
     plan: starter
-    region: frankfurt
-    disk:
-      name: n8n_data
-      mountPath: /home/node/.n8n
-      sizeGB: 1
+    image:
+      url: docker.io/n8nio/n8n:2.8.3
+    healthCheckPath: /healthz
+    autoDeploy: true
+    maxShutdownDelaySeconds: 120
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5678
       - key: N8N_PORT
         value: 5678
+      - key: N8N_LISTEN_ADDRESS
+        value: 0.0.0.0
       - key: N8N_PROTOCOL
         value: https
-      - key: N8N_HOST
-        value: 0.0.0.0
-      - key: N8N_RUNNERS_MODE
-        value: internal
-      - key: N8N_RUNNERS_TEMP_DIRECTORY
-        value: /tmp/n8n_runner
-      - key: N8N_ENCRYPTION_KEY
-        generateValue: true
+      - key: N8N_PROXY_HOPS
+        value: 1
       - key: WEBHOOK_URL
         sync: false
-        placeholder: "https://your-service-name.onrender.com"
-      - key: N8N_NODES_CODE_CAN_REQUIRE_MODULES_BUILTIN
-        value: fs,path,child_process,os,util
-      - key: N8N_NODES_CODE_CAN_REQUIRE_MODULES_EXTERNAL
-        value: "*"
-      - key: N8N_RUNNERS_EXTERNAL_ALLOW
-        value: "*"
-      - key: N8N_RUNNERS_STDLIB_ALLOW
-        value: "*"
-      - key: EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS
-        value: "false"
+      - key: N8N_EDITOR_BASE_URL
+        sync: false
+      - key: N8N_ENCRYPTION_KEY
+        sync: false
+      - key: DB_TYPE
+        value: sqlite
+      - key: DB_SQLITE_DATABASE
+        value: /home/node/.n8n/database.sqlite
+      - key: DB_SQLITE_VACUUM_ON_STARTUP
+        value: "true"
+      - key: N8N_USER_FOLDER
+        value: /home/node/.n8n
+      - key: GENERIC_TIMEZONE
+        value: Asia/Bangkok
+      - key: TZ
+        value: Asia/Bangkok
+      - key: EXECUTIONS_TIMEOUT
+        value: 900
+      - key: EXECUTIONS_TIMEOUT_MAX
+        value: 3600
       - key: EXECUTIONS_DATA_SAVE_ON_ERROR
         value: all
+      - key: EXECUTIONS_DATA_SAVE_ON_SUCCESS
+        value: none
+      - key: EXECUTIONS_DATA_SAVE_ON_PROGRESS
+        value: "false"
+      - key: EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS
+        value: "false"
+      - key: EXECUTIONS_DATA_PRUNE
+        value: "true"
+      - key: EXECUTIONS_DATA_MAX_AGE
+        value: 168
+      - key: EXECUTIONS_DATA_PRUNE_MAX_COUNT
+        value: 5000
+      - key: N8N_LOG_LEVEL
+        value: info
+      - key: N8N_LOG_OUTPUT
+        value: console
+      - key: N8N_LOG_FORMAT
+        value: json
+      - key: N8N_GRACEFUL_SHUTDOWN_TIMEOUT
+        value: 110
+      - key: N8N_DIAGNOSTICS_ENABLED
+        value: "false"
+      - key: N8N_VERSION_NOTIFICATIONS_ENABLED
+        value: "false"
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: ALLOW_LINE_SIGNATURE_BYPASS
+        value: "false"
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 5

@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 1. n8n: Run local test container",
+      "detail": "Run n8n locally using docker with official image mapped to port 5678",
+      "type": "shell",
+      "command": "docker run -d --name n8n-local-test -p 5678:5678 n8nio/n8n:2.8.3",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "🛑 2. n8n: Stop and remove local container",
+      "detail": "Forces stop and removal of the test container",
+      "type": "shell",
+      "command": "docker rm -f n8n-local-test",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "close": true
+      }
+    },
+    {
+      "label": "✅ 3. n8n: Validate render.yaml syntax",
+      "detail": "Use a temporary docker container to check YAML syntax",
+      "type": "shell",
+      "command": "docker run --rm -v \"${workspaceFolder}:/workspace\" -w /workspace mikefarah/yq -e . render.yaml",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}
